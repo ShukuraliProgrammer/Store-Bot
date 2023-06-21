@@ -51,10 +51,10 @@ async def category_callback_handler(query: CallbackQuery, callback_data: dict, s
     await query.message.answer("Yana qushishni hohlaysizmi ?", reply_markup=markup)
 
 
-@dp.message_handler(IsAdmin(), text=add_subcategory)
-async def add_subcategory_handler(message: Message, state: FSMContext):
-    await message.delete()
-    await message.answer("Sub Kategoriya nomi ?")
+@dp.callback_query_handler(IsAdmin(), text='add_subcategory')
+async def add_subcategory_handler(query: CallbackQuery):
+    await query.message.delete()
+    await query.message.answer("Sub Kategoriya nomi ?")
     await SubCategoryState.title.set()
 
 
@@ -132,7 +132,7 @@ async def delete_category_handler(message: Message, state: FSMContext):
 async def subcategory_callback_handler(query: CallbackQuery, callback_data: dict, state: FSMContext):
     subcategory_idx = callback_data['id']
     products = db.fetchall('''SELECT * FROM products product
-    WHERE product.tag = (SELECT title FROM categories WHERE idx=?)''',
+    WHERE product.tag = (SELECT title FROM subcategories WHERE idx=?)''',
                            (subcategory_idx,))
     await query.message.delete()
     await query.answer('Ushbu turkumdagi barcha qoshilgan mahsulotlar.')
@@ -238,12 +238,22 @@ async def process_price(message: Message, state: FSMContext):
     async with state.proxy() as data:
         data['price'] = message.text
 
+
+        await ProductState.next()
+
+        await message.answer("Soni ?", reply_markup=back_markup())
+
+@dp.message_handler(IsAdmin(), lambda message: message.text.isdigit(), state=ProductState.quantity)
+async def process_body(message: Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['quantity'] = message.text
+
         title = data['title']
         body = data['body']
         price = data['price']
-
+        quantity = message.text
         await ProductState.next()
-        text = f'<b>{title}</b>\n\n{body}\n\nNarx: {price} Sum.'
+        text = f'<b>{title}</b>\n\n{body}\n\nNarx: {price} Sum.\n\nSoni: {quantity}'
 
         markup = check_markup()
 
@@ -269,20 +279,19 @@ async def process_confirm_back(message: Message, state: FSMContext):
 @dp.message_handler(IsAdmin(), text=all_right_message, state=ProductState.confirm)
 async def process_confirm(message: Message, state: FSMContext):
     async with state.proxy() as data:
-        print("dateL: ", data["subcategory_index"])
 
         title = data['title']
         body = data['body']
         image = data['image']
         price = data['price']
+        quantity = data['quantity']
 
         tag = db.fetchone(
             'SELECT title FROM subcategories WHERE idx=?', (data['subcategory_index'],))[0]
         idx = md5(' '.join([title, body, price, tag]
                            ).encode('utf-8')).hexdigest()
-
-        db.query('INSERT INTO products VALUES (?, ?, ?, ?, ?, ?)',
-                 (idx, title, body, image, int(price), tag))
+        db.query('INSERT INTO products VALUES (?, ?, ?, ?, ?, ?, ?)',
+                 (idx, title, body, image, int(price), quantity, tag))
 
     await message.answer('tastiqlash!', reply_markup=ReplyKeyboardRemove())
     await state.finish()
@@ -303,8 +312,8 @@ async def delete_product_callback_handler(query: CallbackQuery, callback_data: d
 async def show_products(m, products, category_idx):
     await bot.send_chat_action(m.chat.id, ChatActions.TYPING)
 
-    for idx, title, body, image, price, tag in products:
-        text = f'<b>{title}</b>\n\n{body}\n\nnarx: {price} Sum.'
+    for idx, title, body, image, price, quantity, tag in products:
+        text = f'<b>{title}</b>\n\n{body}\n\nnarx: {price} Sum.\n\nSoni: {quantity}'
 
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(
