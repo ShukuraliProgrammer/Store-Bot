@@ -38,14 +38,14 @@ async def process_cart(message: Message, state: FSMContext):
                 db.query('DELETE FROM cart WHERE idx=?', (idx,))
 
             else:
-                _, title, body, image, price, _ = product
+                _, title, body, image, price, quantity, _ = product
                 order_cost += price
 
                 async with state.proxy() as data:
                     data['products'][idx] = [title, price, count_in_cart]
 
                 markup = product_markup(idx, count_in_cart)
-                text = f'<b>{title}</b>\n\n{body}\n\nnarx: {price} sum.'
+                text = f'<b>{title}</b>\n\n{body}\n\nSoni: {quantity}\n\nnarx: {price} sum.'
 
                 await message.answer_photo(photo=image,
                                            caption=text,
