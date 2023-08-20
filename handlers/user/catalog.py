@@ -2,12 +2,33 @@ from aiogram.types import ReplyKeyboardMarkup
 import logging
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from keyboards.inline.categories import categories_markup, category_cb, subcategory_cb
-from keyboards.inline.products_from_catalog import product_markup, product_cb
+from keyboards.inline.products_from_catalog import product_markup, product_cb, product_send
 from aiogram.utils.callback_data import CallbackData
 from aiogram.types.chat import ChatActions
 from loader import dp, db, bot
 from .menu import catalog
 from filters import IsUser
+from aiogram.dispatcher import FSMContext
+from data import config
+
+
+async def forward_to_user(user_id, message):
+    try:
+        await bot.forward_message(chat_id=user_id, from_chat_id=message.chat.id, message_id=message.message_id)
+    except Exception as e:
+        # Agar xatolik bo'lsa uni tekshirib ko'rsatamiz
+        logging.exception(f"Xatolik yuz berdi: {e}")
+
+
+@dp.callback_query_handler(IsUser(), product_send.filter(action='send'))
+async def product_send_callback_handler(query: CallbackQuery, callback_data: dict, state: FSMContext):
+    idx = callback_data['id']
+    action = callback_data['action']
+    print("text: ",query.message.text)
+
+    user_id = 1467352173
+    await bot.forward_message(chat_id=user_id, from_chat_id=query.message.chat.id,
+                              message_id=query.message.message_id)
 
 
 @dp.message_handler(IsUser(), text=catalog)
