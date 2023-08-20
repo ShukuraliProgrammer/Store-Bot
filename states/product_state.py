@@ -6,6 +6,7 @@ class ProductState(StatesGroup):
     body = State()
     image = State()
     price = State()
+    quantity = State()
     confirm = State()
 
 

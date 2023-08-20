@@ -11,7 +11,7 @@ class DatabaseManager(object):
 
     def create_tables(self):
         self.query(
-            'CREATE TABLE IF NOT EXISTS products (idx text, title text, body text, photo blob, price int, tag text)')
+            'CREATE TABLE IF NOT EXISTS products (idx text, title text, body text, photo blob, price int, quantity int, tag text)')
         self.query('CREATE TABLE IF NOT EXISTS orders (cid int, usr_name text, usr_address text, products text)')
         self.query('CREATE TABLE IF NOT EXISTS cart (cid int, idx text, quantity int)')
         self.query('CREATE TABLE IF NOT EXISTS categories (idx text, title text)')
